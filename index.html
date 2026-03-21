@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  ============================================================
+  TutorConnect — index.html
+  Owner / Admin : Monisha S
+
+  THIS FILE = Structure only (no CSS, no JavaScript here)
+  - To change COLOURS/DESIGN  → edit styles.css
+  - To change LOGIC/BEHAVIOUR → edit app.js
+  - To change CONTENT/LAYOUT  → edit this file
+
+  HOW THE PAGES WORK:
+  Each <div class="page" id="page-xxx"> is a full page.
+  Only one is visible at a time (controlled by app.js showPage()).
+  The pages are:
+    page-home      → Browse tutors
+    page-register  → Create account
+    page-login     → Log in
+    page-dashboard → Student / Tutor / Parent dashboard
+    page-admin     → Admin panel (Monisha S only)
+  ============================================================
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutorConnect — Find Tutors Near You</title>
+
+  <!-- Google Fonts — change these to use different fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <!-- All styles are in this file — edit to change design -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOP BANNER
+     Edit the text here to change the announcement bar.
+═══════════════════════════════════════════════════════════ -->
+<div class="deploy-banner" id="deployBanner">
+  🌐 <strong>TutorConnect</strong> — Share this page link with students &amp; parents &nbsp;|&nbsp;
+  Admin? <a onclick="showPage('admin')">Open admin panel →</a>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAVBAR
+     Edit nav button labels here.
+     Show/hide is controlled by app.js updateNav().
+═══════════════════════════════════════════════════════════ -->
+<nav>
+  <!-- Logo — clicking it goes to home page -->
+  <div class="logo" onclick="showPage('home')">
+    Tutor<span>Connect</span>
+    <span id="adminBadgeNav" class="admin-badge" style="display:none">Admin</span>
+  </div>
+
+  <!-- Right side of navbar -->
+  <div class="nav-right" id="navRight">
+    <button class="nav-btn active" onclick="showPage('home')">Browse</button>
+    <button class="nav-btn" onclick="showPage('dashboard')" id="navDash" style="display:none">My Dashboard</button>
+    <button class="nav-btn" onclick="showPage('admin')" id="navAdmin" style="display:none">⚙ Admin</button>
+
+    <!-- Shown when NOT logged in -->
+    <div id="navAuth" style="display:flex;gap:6px">
+      <button class="nav-btn"         onclick="showPage('login')">Log in</button>
+      <button class="nav-btn primary" onclick="showPage('register')">Register free</button>
+    </div>
+
+    <!-- Shown when logged in -->
+    <div id="navUser" style="display:none;align-items:center;gap:8px">
+      <div class="user-chip" id="userChip"></div>
+      <button class="nav-btn" onclick="logout()">Log out</button>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE: HOME — Browse Tutors
+═══════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+
+  <!-- Hero section — edit heading and subtext here -->
+  <div class="hero">
+    <h1>Learn from tutors<br><em>who care</em></h1>
+    <p>Connect with verified tutors nearby. Affordable one-on-one sessions for school, board exams, competitive prep, and coding.</p>
+
+    <!-- Price range pills — edit these labels as needed -->
+    <div class="hero-pills">
+      <span class="hero-pill">📚 School subjects · ₹50–₹100/hr</span>
+      <span class="hero-pill">🎓 JEE / NEET / IELTS · ₹500–₹1000/hr</span>
+      <span class="hero-pill">💻 Coding & DSA · ₹700–₹1000/hr</span>
+    </div>
+
+    <!-- CTA buttons -->
+    <div class="hero-ctas">
+      <button class="btn-accent" onclick="showPage('register')">Register as student</button>
+      <button class="btn-accent" style="background:var(--info)" onclick="showTutorRegister()">Join as tutor &amp; earn</button>
+    </div>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-bar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Search by name, subject, or exam…" oninput="filterTutors()">
+    <select id="priceFilter" onchange="filterTutors()">
+      <option value="">All prices</option>
+      <option value="budget">Budget (₹50–₹150)</option>
+      <option value="mid">Mid (₹150–₹500)</option>
+      <option value="premium">Premium (₹500–₹1000)</option>
+    </select>
+    <button onclick="filterTutors()">Search</button>
+  </div>
+
+  <!-- Filter buttons — add more here if needed -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter(this,'all')">All tutors</button>
+    <button class="filter-btn" onclick="setFilter(this,'available')">Available now</button>
+    <button class="filter-btn" onclick="setFilter(this,'top')">Top rated ⭐</button>
+    <button class="filter-btn" onclick="setFilter(this,'school')">School (Class 5–10)</button>
+    <button class="filter-btn" onclick="setFilter(this,'competitive')">Competitive Exams</button>
+    <button class="filter-btn" onclick="setFilter(this,'tech')">Coding &amp; Tech</button>
+  </div>
+
+  <!-- Tutor cards grid — filled dynamically by app.js renderGrid() -->
+  <div class="tutor-grid" id="tutorGrid"></div>
+
+  <!-- Ask a question CTA -->
+  <div class="ask-card">
+    <div style="font-size:2rem">💬</div>
+    <div>
+      <h3>Have a study doubt?</h3>
+      <p>Ask Monisha S (Admin) — get a personal reply and tutor recommendation.</p>
+    </div>
+    <button class="btn-accent" onclick="openAskModal()">Ask a question</button>
+  </div>
+
+</div><!-- end page-home -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE: REGISTER
+═══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-register">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div style="font-size:2rem;margin-bottom:.5rem">✨</div>
+      <h2>Create your account</h2>
+      <p>Join TutorConnect — free for students, earn income as a tutor</p>
+
+      <!-- Role selector -->
+      <div class="role-select" style="margin-bottom:1.25rem">
+        <div class="role-opt active" id="roleOptStudent" onclick="selectRegRole('student')">
+          <span class="role-icon">🎓</span>Student
+        </div>
+        <div class="role-opt" id="roleOptTutor" onclick="selectRegRole('tutor')">
+          <span class="role-icon">👨‍🏫</span>Tutor / Earn
+        </div>
+        <div class="role-opt" id="roleOptParent" onclick="selectRegRole('parent')">
+          <span class="role-icon">👨‍👩‍👧</span>Parent
+        </div>
+      </div>
+
+      <!-- Hidden field stores selected role -->
+      <input type="hidden" id="regRole" value="student">
+
+      <!-- Common fields (all roles) -->
+      <div class="frow"><label>Full name *</label><input type="text" id="regName" placeholder="Your full name"></div>
+      <div class="frow"><label>Email address *</label><input type="email" id="regEmail" placeholder="your@email.com"></div>
+      <div class="frow"><label>Phone number</label><input type="tel" id="regPhone" placeholder="10-digit mobile number"></div>
+      <div class="frow"><label>Password *</label><input type="password" id="regPassword" placeholder="Min 6 characters"></div>
+      <div class="frow"><label>Confirm password *</label><input type="password" id="regConfirm" placeholder="Re-enter password"></div>
+
+      <!-- Extra fields for STUDENT -->
+      <div id="extraStudent">
+        <div class="frow">
+          <label>Grade / class</label>
+          <select id="regGrade">
+            <option value="">Select grade…</option>
+            <option>Class 5</option><option>Class 6</option><option>Class 7</option><option>Class 8</option>
+            <option>Class 9</option><option>Class 10</option><option>Class 11</option><option>Class 12</option>
+            <option>JEE Aspirant</option><option>NEET Aspirant</option>
+            <option>College Student</option><option>Working Professional</option>
+          </select>
+        </div>
+        <div class="frow">
+          <label>Parent's email (optional)</label>
+          <input type="email" id="regParentEmail" placeholder="parent@email.com — they'll get session updates">
+        </div>
+      </div>
+
+      <!-- Extra fields for TUTOR -->
+      <div id="extraTutor" style="display:none">
+        <div class="frow"><label>Qualification / role *</label><input type="text" id="regQual" placeholder="e.g. B.Ed Teacher · 4 yrs exp"></div>
+        <div class="frow"><label>Subjects you teach *</label><input type="text" id="regSubjects" placeholder="e.g. Mathematics, Physics, JEE"></div>
+        <div class="frow frow-2">
+          <div><label>Price per hour (₹) *</label><input type="number" id="regPrice" placeholder="e.g. 200"></div>
+          <div><label>Price range label</label><input type="text" id="regPriceRange" placeholder="₹150–₹300/hr"></div>
+        </div>
+        <div class="frow"><label>Location / area</label><input type="text" id="regLocation" placeholder="e.g. Koramangala, Bengaluru"></div>
+        <div class="frow"><label>Brief bio</label><textarea id="regBio" rows="3" placeholder="Tell students about yourself…"></textarea></div>
+        <!-- Note: tutor profile needs admin approval before going live -->
+        <div class="info-box">📋 Your profile will be reviewed by <strong>Monisha S (Admin)</strong> before going live. Usually within 24 hours.</div>
+      </div>
+
+      <!-- Extra fields for PARENT -->
+      <div id="extraParent" style="display:none">
+        <div class="frow"><label>Child's name</label><input type="text" id="regChildName" placeholder="Your child's full name"></div>
+        <div class="frow">
+          <label>Child's grade</label>
+          <select id="regChildGrade">
+            <option value="">Select…</option>
+            <option>Class 5</option><option>Class 6</option><option>Class 7</option><option>Class 8</option>
+            <option>Class 9</option><option>Class 10</option><option>Class 11</option><option>Class 12</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-full btn-accent" style="margin-top:.5rem" onclick="doRegister()">Create account</button>
+      <div style="margin-top:1rem;font-size:13px;color:var(--muted)">
+        Already have an account? <a style="color:var(--accent);cursor:pointer" onclick="showPage('login')">Log in</a>
+      </div>
+    </div>
+  </div>
+</div><!-- end page-register -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE: LOGIN
+═══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-login">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div style="font-size:2rem;margin-bottom:.5rem">👋</div>
+      <h2>Welcome back</h2>
+      <p>Log in to TutorConnect</p>
+
+      <div class="frow" style="text-align:left">
+        <label>Email address</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com">
+      </div>
+      <div class="frow" style="text-align:left">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Your password" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+
+      <!-- Error message shown if login fails -->
+      <div id="loginError" class="warn-box" style="display:none;text-align:left"></div>
+
+      <button class="btn-full btn-accent" onclick="doLogin()">Log in</button>
+
+      <div style="margin-top:1rem;font-size:13px;color:var(--muted)">
+        Don't have an account? <a style="color:var(--accent);cursor:pointer" onclick="showPage('register')">Register free</a>
+      </div>
+      <div style="margin-top:.75rem;font-size:12px;color:var(--muted)">Admin? Use your admin credentials on the Admin page.</div>
+    </div>
+  </div>
+</div><!-- end page-login -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE: DASHBOARD
+     Shows different content depending on user role:
+       - Student: bookings + questions + review form
+       - Tutor:   earnings + session requests + upcoming
+       - Parent:  child's sessions
+═══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-dashboard">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title" id="dashGreeting">Dashboard</div>
+      <div class="dash-sub" id="dashSub"></div>
+    </div>
+    <button class="btn-accent" onclick="showPage('home')">Browse tutors</button>
+  </div>
+
+  <!-- ── STUDENT DASHBOARD ── -->
+  <div id="dashStudent">
+    <div class="section-header">
+      <h2>My bookings</h2>
+      <span class="section-count" id="myBookingCount"></span>
+    </div>
+    <div id="myBookingsList" class="requests-list"></div>
+
+    <hr class="divider">
+
+    <div class="section-header">
+      <h2>My questions</h2>
+      <button class="btn-admin-sm" onclick="openAskModal()">+ Ask a question</button>
+    </div>
+    <div id="myQuestionsList"></div>
+
+    <hr class="divider">
+
+    <div class="section-header"><h2>Leave a review</h2></div>
+    <div class="detail-card" style="max-width:480px">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Had a session? Help others by rating your tutor.</p>
+      <div class="frow">
+        <label>Select tutor</label>
+        <select id="reviewTutorSel"><option value="">Choose…</option></select>
+      </div>
+      <div class="frow">
+        <label>Rating</label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="range" min="1" max="5" value="5" id="reviewRating"
+            oninput="document.getElementById('ratingDisp').textContent = this.value + ' ★'"
+            style="flex:1">
+          <span id="ratingDisp" style="font-weight:600;color:var(--accent);min-width:32px">5 ★</span>
+        </div>
+      </div>
+      <div class="frow"><label>Your review</label><textarea id="reviewText" rows="3" placeholder="Share your experience…"></textarea></div>
+      <button class="btn-accent" onclick="submitReview()">Submit review</button>
+    </div>
+  </div>
+
+  <!-- ── TUTOR DASHBOARD ── -->
+  <div id="dashTutor" style="display:none">
+    <div class="profile-section" style="margin-bottom:1.5rem">
+      <div class="earnings-card">
+        <div class="label">Total earnings</div>
+        <div class="amount" id="tutorEarnings">₹0</div>
+        <div style="font-size:12px;opacity:.7;margin-top:4px" id="tutorSessions">0 sessions completed</div>
+      </div>
+      <div class="detail-card">
+        <div class="section-title" style="margin-top:0">Your profile status</div>
+        <div id="tutorProfileStatus"></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <h2>Booking requests</h2>
+      <span class="section-count" id="tutorReqCount"></span>
+    </div>
+    <div id="tutorRequestsList" class="requests-list"></div>
+
+    <hr class="divider">
+
+    <div class="section-header"><h2>Upcoming sessions</h2></div>
+    <div id="tutorUpcomingList" class="requests-list"></div>
+  </div>
+
+  <!-- ── PARENT DASHBOARD ── -->
+  <div id="dashParent" style="display:none">
+    <div class="info-box">👨‍👩‍👧 As a parent, you can monitor your child's sessions and stay updated on their learning progress.</div>
+    <div class="section-header"><h2>Your child's sessions</h2></div>
+    <div id="parentSessionsList" class="requests-list"></div>
+  </div>
+
+</div><!-- end page-dashboard -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE: ADMIN (Monisha S only — password protected)
+═══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-admin">
+
+  <!-- Login wall — shown until correct password is entered -->
+  <div id="adminLoginWall" style="display:flex;min-height:60vh;align-items:center;justify-content:center">
+    <div class="auth-card" style="text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">🔐</div>
+      <h2>Admin Access Only</h2>
+      <p>TutorConnect · Owner: Monisha S<br>This panel is restricted.</p>
+
+      <div class="frow" style="text-align:left;margin-top:1.25rem">
+        <label>Admin password</label>
+        <input type="password" id="adminPwd" placeholder="Enter admin password"
+          onkeydown="if(event.key==='Enter') adminLogin()">
+      </div>
+      <div id="adminLoginErr" class="warn-box" style="display:none;text-align:left"></div>
+      <button class="btn-full btn-accent" style="background:var(--admin)" onclick="adminLogin()">Login as Monisha S</button>
+      <div style="margin-top:1rem;font-size:12px;color:var(--muted)">
+        Default password: <code style="background:var(--tag-bg);padding:2px 6px;border-radius:4px">monisha2025</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin content — shown after successful login -->
+  <div id="adminContent" style="display:none">
+
+    <!-- Banner -->
+    <div class="admin-banner">
+      <div>
+        <h2>Welcome back, Monisha S 👋</h2>
+        <p>Owner &amp; Administrator · Full platform control</p>
+      </div>
+      <div class="admin-banner-stats">
+        <div class="astat"><span class="val" id="aStat1">0</span><span class="lbl">Tutors</span></div>
+        <div class="astat"><span class="val" id="aStat2">0</span><span class="lbl">Students</span></div>
+        <div class="astat"><span class="val" id="aStat3">0</span><span class="lbl">Pending</span></div>
+        <div class="astat"><span class="val" id="aStat4">₹0</span><span class="lbl">Revenue</span></div>
+        <div class="astat"><span class="val" id="aStat5">0</span><span class="lbl">Open Q's</span></div>
+      </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="adminTab(this,'aTabBookings')">📋 Bookings</button>
+      <button class="admin-tab" onclick="adminTab(this,'aTabQuestions')">💬 Questions</button>
+      <button class="admin-tab" onclick="adminTab(this,'aTabTutors')">👨‍🏫 Tutors</button>
+      <button class="admin-tab" onclick="adminTab(this,'aTabStudents')">👩‍🎓 Users</button>
+      <button class="admin-tab" onclick="adminTab(this,'aTabReviews')">⭐ Reviews</button>
+      <button class="admin-tab" onclick="adminTab(this,'aTabIssues')">🚨 Issues</button>
+      <button class="admin-tab" onclick="adminTab(this,'aTabSettings')">⚙ Settings</button>
+    </div>
+
+    <!-- Bookings tab -->
+    <div class="admin-section active" id="aTabBookings">
+      <div class="section-header">
+        <h2>All booking requests</h2>
+        <select id="bStatusFilter" onchange="renderAdminBookings()"
+          style="border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:13px;font-family:var(--sans)">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="accepted">Accepted</option>
+          <option value="declined">Declined</option>
+        </select>
+      </div>
+      <div id="adminBookingsList" class="requests-list"></div>
+    </div>
+
+    <!-- Questions tab -->
+    <div class="admin-section" id="aTabQuestions">
+      <div class="section-header">
+        <h2>Student questions</h2>
+        <span class="section-count" id="adminQCount"></span>
+      </div>
+      <div id="adminQuestionsList"></div>
+    </div>
+
+    <!-- Tutors tab -->
+    <div class="admin-section" id="aTabTutors">
+      <div class="section-header">
+        <h2>Manage tutors</h2>
+        <button class="btn-admin-sm" onclick="openModal('modalAddTutor')">+ Add tutor</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Subjects</th><th>Price</th>
+              <th>Rating</th><th>Earnings</th><th>Status</th>
+              <th>Featured</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminTutorsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users tab -->
+    <div class="admin-section" id="aTabStudents">
+      <div class="section-header"><h2>All registered users</h2></div>
+      <div class="tbl-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Email</th><th>Role</th>
+              <th>Grade / Info</th><th>Parent email</th>
+              <th>Sessions</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminStudentsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reviews tab -->
+    <div class="admin-section" id="aTabReviews">
+      <div class="section-header"><h2>Reviews</h2></div>
+      <div id="adminReviewsList"></div>
+    </div>
+
+    <!-- Issues tab -->
+    <div class="admin-section" id="aTabIssues">
+      <div class="section-header">
+        <h2>Support issues</h2>
+        <button class="btn-admin-sm" onclick="openModal('modalIssue')">+ Log issue</button>
+      </div>
+      <div id="adminIssuesList"></div>
+    </div>
+
+    <!-- Settings tab -->
+    <div class="admin-section" id="aTabSettings">
+      <div class="section-header"><h2>Platform settings</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.25rem" id="settingsGrid"></div>
+    </div>
+
+  </div><!-- end adminContent -->
+</div><!-- end page-admin -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS (popups)
+═══════════════════════════════════════════════════════════ -->
+
+<!-- Tutor detail popup -->
+<div class="modal-overlay" id="modalTutor">
+  <div class="modal modal-lg">
+    <button class="modal-close" onclick="closeModal('modalTutor')">✕</button>
+    <div id="tutorDetailInner"></div>
+  </div>
+</div>
+
+<!-- Book a session popup -->
+<div class="modal-overlay" id="modalBook">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalBook')">✕</button>
+    <h3>Book a session</h3>
+    <!-- Hidden fields to store selected tutor -->
+    <input type="hidden" id="bkTutorId">
+    <input type="hidden" id="bkTutorName">
+    <!-- Login hint for guests -->
+    <div class="info-box" id="bkLoginHint" style="display:none">
+      Please <a style="color:var(--accent);cursor:pointer;font-weight:600" onclick="closeModal('modalBook');showPage('login')">log in</a>
+      or <a style="color:var(--accent);cursor:pointer;font-weight:600" onclick="closeModal('modalBook');showPage('register')">register</a> to book a session.
+    </div>
+    <div id="bkForm">
+      <div class="frow"><label>Your name *</label><input type="text" id="bkName" placeholder="Full name"></div>
+      <div class="frow"><label>Email *</label><input type="email" id="bkEmail" placeholder="your@email.com"></div>
+      <div class="frow"><label>Parent email (optional)</label><input type="email" id="bkParent" placeholder="parent@email.com"></div>
+      <div class="frow"><label>Subject *</label><input type="text" id="bkSubject" placeholder="e.g. Mathematics, JEE, Python"></div>
+      <div class="frow frow-2">
+        <div><label>Date *</label><input type="date" id="bkDate"></div>
+        <div>
+          <label>Time *</label>
+          <select id="bkTime">
+            <option>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option>
+            <option>11:00 AM</option><option>12:00 PM</option><option>2:00 PM</option>
+            <option>3:00 PM</option><option>4:00 PM</option><option>5:00 PM</option>
+            <option>6:00 PM</option><option>7:00 PM</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow"><label>Notes</label><textarea id="bkNotes" rows="3" placeholder="Describe your topic or doubt…"></textarea></div>
+      <div class="frow"><label>Referral code (optional)</label><input type="text" id="bkRef" placeholder="TC-XXXXX"></div>
+      <button class="btn-full btn-accent" onclick="submitBooking()">Send booking request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ask a question popup -->
+<div class="modal-overlay" id="modalAsk">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAsk')">✕</button>
+    <h3>Ask a study question</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1rem">Monisha S (Admin) will personally review and reply.</p>
+    <div id="askLoginHint" class="info-box" style="display:none">
+      You're asking as a guest.
+      <a style="color:var(--accent);cursor:pointer" onclick="closeModal('modalAsk');showPage('login')">Log in</a> to track replies in your dashboard.
+    </div>
+    <div class="frow"><label>Your name *</label><input type="text" id="askName" placeholder="Full name"></div>
+    <div class="frow"><label>Email *</label><input type="email" id="askEmail" placeholder="your@email.com"></div>
+    <div class="frow"><label>Subject</label><input type="text" id="askSubject" placeholder="e.g. Mathematics, Biology"></div>
+    <div class="frow"><label>Your question *</label><textarea id="askQuestion" rows="4" placeholder="Type your doubt here…"></textarea></div>
+    <button class="btn-full btn-accent" onclick="submitQuestion()">Submit question</button>
+  </div>
+</div>
+
+<!-- Admin: Add tutor popup -->
+<div class="modal-overlay" id="modalAddTutor">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddTutor')">✕</button>
+    <h3>Add new tutor</h3>
+    <div class="frow"><label>Full name *</label><input type="text" id="ntName"></div>
+    <div class="frow"><label>Role / qualification</label><input type="text" id="ntRole" placeholder="e.g. IIT Graduate · 5 yrs exp"></div>
+    <div class="frow"><label>Subjects (comma-separated)</label><input type="text" id="ntSubjects" placeholder="Mathematics, Physics, JEE"></div>
+    <div class="frow frow-2">
+      <div><label>Price (₹/hr)</label><input type="number" id="ntPrice" placeholder="200"></div>
+      <div><label>Price range label</label><input type="text" id="ntPriceRange" placeholder="₹150–₹300/hr"></div>
+    </div>
+    <div class="frow frow-2">
+      <div><label>Phone</label><input type="text" id="ntPhone"></div>
+      <div><label>Location</label><input type="text" id="ntLocation" placeholder="City, State"></div>
+    </div>
+    <div class="frow"><label>About</label><textarea id="ntAbout" rows="2"></textarea></div>
+    <div class="frow"><label>Teaching approach</label><textarea id="ntApproach" rows="2"></textarea></div>
+    <button class="btn-full btn-accent" style="background:var(--admin)" onclick="adminAddTutor()">Add tutor</button>
+  </div>
+</div>
+
+<!-- Admin: Log issue popup -->
+<div class="modal-overlay" id="modalIssue">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalIssue')">✕</button>
+    <h3>Log support issue</h3>
+    <div class="frow"><label>Reported by</label><input type="text" id="issReporter" placeholder="Name or email"></div>
+    <div class="frow">
+      <label>Type</label>
+      <select id="issType">
+        <option>Technical</option><option>Billing</option>
+        <option>Tutor behaviour</option><option>Session dispute</option><option>Other</option>
+      </select>
+    </div>
+    <div class="frow"><label>Description *</label><textarea id="issDesc" rows="3"></textarea></div>
+    <button class="btn-full btn-accent" style="background:var(--admin)" onclick="adminAddIssue()">Log issue</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST NOTIFICATION (bottom-right popup)
+═══════════════════════════════════════════════════════════ -->
+<div class="toast" id="toast"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+     All logic is in app.js — edit that file, not here.
+═══════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
